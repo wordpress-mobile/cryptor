@@ -1,0 +1,111 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      uploadurl: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          body: ""
+          draft: true
+          prerelease: false
+  
+  # Build for Windows
+  windows:
+    runs-on: windows-latest
+    needs: [setup]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: cargo build --release
+      - name: Upload Artifact to Job
+        uses: actions/upload-artifact@v1
+        with:
+          name: cryptor.exe
+          path: target/release/cryptor.exe
+      - name: Package
+        id: package-windows-release-asset
+        run: Compress-Archive target/release/cryptor.exe cryptor-windows.zip
+      - name: Attach Artifact to Release
+        id: upload-windows-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{needs.setup.outputs.uploadurl}}
+          asset_path: cryptor-windows.zip
+          asset_name: cryptor-windows.zip
+          asset_content_type: application/zip
+  # Build for Mac
+  mac:
+    runs-on: macos-latest
+    needs: [setup]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: cargo build --release
+      - name: Upload Artifact to Job
+        uses: actions/upload-artifact@v1
+        with:
+          name: cryptor-macos
+          path: target/release/cryptor
+      - name: Package
+        id: package-mac-release-asset
+        run: |
+          cd target/release
+          zip cryptor-macos.zip cryptor
+          mv cryptor-macos.zip ../../
+          cd -
+      - name: Attach Artifact to Release
+        id: upload-mac-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{needs.setup.outputs.uploadurl}}
+          asset_path: cryptor-macos.zip
+          asset_name: cryptor-macos.zip
+          asset_content_type: application/zip
+  # Build for Linux
+  linux:
+    runs-on: ubuntu-latest
+    needs: [setup]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: cargo build --release
+      - name: Upload Artifact to Job
+        uses: actions/upload-artifact@v1
+        with:
+          name: cryptor-linux
+          path: target/release/cryptor
+      - name: Package
+        id: package-linux-release-asset
+        run: |
+          cd target/release
+          zip cryptor-linux.zip cryptor
+          mv cryptor-linux.zip ../../
+          cd -
+      - name: Attach Artifact to Release
+        id: upload-linux-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{needs.setup.outputs.uploadurl}}
+          asset_path: cryptor-linux.zip
+          asset_name: cryptor-linux.zip
+          asset_content_type: application/zip
