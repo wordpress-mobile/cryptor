@@ -121,7 +121,7 @@ fn decrypt_file(input_path: PathBuf, output_path: PathBuf, secret: String) {
 fn encrypt_bytes(input: Vec<u8>, key: sodiumoxide::crypto::secretbox::Key) -> Vec<u8> {
     let nonce = secretbox::gen_nonce();
     let secret_bytes = secretbox::seal(&input, &nonce, &key);
-    [&nonce[..], ":".as_bytes(), &secret_bytes].concat()
+    [&nonce[..], b":", &secret_bytes].concat()
 }
 
 fn decrypt_bytes(input: Vec<u8>, key: sodiumoxide::crypto::secretbox::Key) -> Vec<u8> {
